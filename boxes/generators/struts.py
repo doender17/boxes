@@ -82,17 +82,29 @@ class Struts(Boxes):
         #p.char = "a" # 'a', 'A', 'b' and 'B' is reserved for being used within generators
 
         def struts(edge_num):
+            def draw_tri_even(inv=1.0):
+                self.polyline(tri_y, -90, tri_x, -90 - alpha, tri_h, 180 + alpha)
+                self.moveTo(tri_y, -1.0 * (tri_x + s * f), 180)
+                self.polyline(tri_y, -90, tri_x, -90 - alpha, tri_h, 180 + alpha)
+                self.moveTo(tri_y, s, 180)
+            def draw_tri_odd(inv=1.0):
+                self.polyline(tri_y, -180 + alpha, tri_h, -90 - alpha, tri_x, -90)
+                self.moveTo(tri_y, -f * s, -90)
+                self.polyline(tri_x, -90, tri_y, 180+alpha, tri_h, -alpha)
+                self.moveTo(-tri_y, -tri_x - s)
+
             if edge_num != 0:
                 return
-            self.moveTo(s, s)
+
+            self.moveTo(s, s, 90)
+
             for j in range(ny):
                 for i in range(nx):
-                    self.polyline(0,90,tri_y, -90, tri_x, -90-alpha, tri_h, alpha + 90)
-                    self.moveTo((s * f), 0)
-                    self.polyline(0, 90-alpha, tri_h, -180+ alpha, tri_y, -90, tri_x, 180)
-                    self.moveTo(tri_x + s, 0)
-                self.moveTo(-1.0* (nx * tri_x + nx * f * s + nx * s), tri_y + s, 180)
-                self.moveTo(0,0, 180)
+                    if (i+j) % 2 == 0:
+                        draw_tri_even()
+                    else:
+                        draw_tri_odd()
+                self.moveTo(tri_y + s, (nx * tri_x + nx * f * s + nx * s))
 
         def fingerHoles(edge_num):
 

@@ -25,11 +25,6 @@ class Struts(Boxes):
         # Uncomment the settings for the edge types you use
         # use keyword args to set default values
         self.addSettingsArgs(edges.FingerJointSettings, finger=1.0,space=1.0)
-        # self.addSettingsArgs(edges.StackableSettings)
-        # self.addSettingsArgs(edges.HingeSettings)
-        # self.addSettingsArgs(edges.SlideOnLidSettings)
-        # self.addSettingsArgs(edges.ClickSettings)
-        # self.addSettingsArgs(edges.FlexSettings)
 
         # remove cli params you do not need
         self.buildArgParser(x=150, y=100)
@@ -163,171 +158,26 @@ class Struts(Boxes):
         self.edge(spec[-1][0] - self.thickness/2.0)
         self.corner(90)
 
-    def axleOutline(self, spec, reverse, move):
+    def axleOutline(self, spec, reverse, move, label=None):
         spec = self.expandAxleSpec(spec, self.thickness)
-        print(spec)
         if reverse:
             spec.reverse()
         l = self.getSpecLength(spec)
         h = self.getSpecHeight(spec)
 
-        if self.move(h, l, move, before=True):
+        if self.move(l, h, move, before=True, label=label):
             return
 
         incut = l * 0.5
-        self.moveTo(0, -spec[0][1], 0)
+        self.moveTo(0, h/2.0 - spec[0][0], 0)
+
         self.drawAxleSide(spec)
         self.drawIncut(spec, incut)
         spec.reverse()
         self.drawAxleSide(spec)
         self.edge(2.0 * spec[-1][0])
         self.corner(90)
-        self.move(h, l, move)
-
-    def axle1(self, move):
-        e = self.edges.get("a")
-        r1 = self.axler1
-        r2 = self.axler2
-        r3 = self.axler3
-        totallength = self.axlelength
-        incut = (totallength - 3.0*self.thickness) * 0.5
-
-        cr = 1.0
-
-        if self.move(totallength + self.spacing, 2*r1 + self.spacing, move, before=True):
-            return
-
-        def lower_to_tip():
-            self.moveTo(totallength - self.spacing, 0.0, 90)
-            e(2 * r1)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r1-r2)
-            self.corner(-90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r2-r3)
-            self.corner(-90)
-            self.edge(totallength - 3.0 * self.thickness - cr)
-
-        def tip():
-            self.corner(90, cr)
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90)
-            self.edge(incut)
-            self.corner(-90)
-            self.edge(self.thickness)
-            self.corner(-90)
-            self.edge(incut)
-            self.corner(90)
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90, cr)
-
-        def upper_back():
-            self.edge(totallength - 3.0 * self.thickness - cr)
-            self.corner(-90)
-            self.edge(r2 - r3)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(-90)
-            self.edge(r1 - r2)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(-90)
-
-        with self.saved_context():
-            lower_to_tip()
-            tip()
-            upper_back()
-
-        self.move(totallength + self.spacing, 2 * r1 + self.spacing, move)
-
-    def axle2(self, move):
-
-        r1 = self.axler1
-        r2 = self.axler2
-        r3 = self.axler3
-        totallength = self.axlelength
-        incut = (totallength - 3.0*self.thickness) * 0.5
-        cr = 1.0
-
-        if self.move(totallength + self.spacing, 2*r1 + self.spacing, move, before=True):
-            return
-
-
-        def lower_to_tip():
-            self.corner(-90)
-            self.edge(r1-r3)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r1-r2)
-            self.corner(-90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r2-r3)
-            self.corner(-90)
-            self.edge(totallength - 3.0 * self.thickness - cr)
-            self.corner(90, cr)
-
-        def base():
-            # |
-            # ----------
-            #           |
-            # ----------
-            # |
-            self.moveTo(0, r2 + r3 + self.spacing, -90)
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90)
-            self.edge(totallength-incut)
-            self.corner(-90)
-            self.edge(self.thickness)
-            self.corner(-90)
-            self.edge(totallength-incut)
-            self.corner(90)
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90, cr)
-            self.edge(self.thickness - cr)
-        def tip():
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(180)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(180)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r3 - self.thickness/2.0 - cr)
-            self.corner(90, cr)
-            pass
-        def upper_back():
-            self.edge(totallength - 3.0 * self.thickness - cr)
-            self.corner(-90)
-            self.edge(r2 - r3)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(-90)
-            self.edge(r1 - r2)
-            self.corner(90)
-            self.edge(self.thickness)
-            self.corner(90)
-            self.edge(r1-r3)
-            self.corner(-90)
-            self.edge(self.thickness - cr)
-            self.corner(90,cr)
-
-        with self.saved_context():
-            base()
-            lower_to_tip()
-            tip()
-            upper_back()
-
-        self.move(totallength + self.spacing, 2*r1 + self.spacing, move)
+        self.move(l, h, move, label=label)
 
     def crosshole(self, radius):
 
@@ -343,15 +193,15 @@ class Struts(Boxes):
             self.edge(self.thickness)
             self.corner(90)
 
-    def axleEnd(self, rCrosshole, axleradius, move):
-        if self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move, before=True):
+    def axleEnd(self, rCrosshole, axleradius, move, label=None):
+        if self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move, before=True, label=label):
             return
 
         self.moveTo(axleradius + 0.5 * self.spacing, axleradius +  0.5 * self.spacing)
         self.circle(0.0, 0.0, axleradius)
 
         self.crosshole(rCrosshole)
-        self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move)
+        self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move, label=label)
 
     def axlePulley(self, x, y, rCrosshole, move):
         if self.move(self.spacing + x, self.spacing + y, where=move, before=True):
@@ -456,11 +306,12 @@ class Struts(Boxes):
                 self.fingerHolesAt(0.0, 0.0, strutx)
 
 
+        self.debug = True
         self.gears(teeth=self.teeth1, dimension=self.modulus,
                    angle=self.pressure_angle, profile_shift=self.profile_shift,
                    mount_diameter=3.0 * self.axler2,
                    callback=lambda: self.crosshole(self.axler2),
-                   move="down")
+                   move="right")
         self.gearr1, d1, d1 = self.gears.sizes(
             teeth=self.teeth1, dimension=self.modulus,
             angle=self.pressure_angle, profile_shift=self.profile_shift)
@@ -469,40 +320,43 @@ class Struts(Boxes):
                    angle=self.pressure_angle, profile_shift=self.profile_shift,
                    mount_diameter=3.0 * self.axler2,
                    callback=lambda: self.crosshole(self.axler2),
-                   move="down")
+                   move="right")
 
         self.gearr2, d2, d2 = self.gears.sizes(
             teeth=self.teeth2, dimension=self.modulus,
             angle=self.pressure_angle, profile_shift=self.profile_shift)
 
         if self.spacerdir == "rect":
-            pass
+            self.rectangularWall(x, y, "eeee", move="right", callback=fingerHolesRect)
+            self.rectangularWall(x, y, "eeee", move="right", callback=fingerHolesRect)
+
+            move="down left"
             for i in range(8):
-                self.rectangularWall(strutx, struty, "fefe", move="left",callback=struts)
-            self.rectangularWall(x, y, "eeee", move="down", callback=fingerHolesRect)
-            self.rectangularWall(x, y, "eeee", move="down", callback=fingerHolesRect)
-
+                self.rectangularWall(strutx, struty, "fefe", move=move,callback=struts)
+                move = "left"
         else:
+            self.rectangularWall(x, y, "eeee", move="right", callback=fingerHolesDiag)
+            self.rectangularWall(x, y, "eeee", move="right", callback=fingerHolesDiag)
+
+            move="down left"
             for i in range(4):
-                self.rectangularWall(strutx, struty, "fefe", move="left",callback=struts)
+                self.rectangularWall(strutx, struty, "fefe", move=move,callback=struts)
+                move = "left"
 
-            self.rectangularWall(x, y, "eeee", move="down", callback=fingerHolesDiag)
-            self.rectangularWall(x, y, "eeee", move="left", callback=fingerHolesDiag)
 
-        #self.axle1(move="right down")
-        #self.axle2(move="right")
+        self.axleOutline(self.axlespec, reverse=False,move="down right", label="ax1")
+        self.axleOutline(self.axlespec, reverse=True, move="right", label="ax1rev")
+        self.axleOutline(self.axlespec, reverse=False,move="right")
+        self.axleOutline(self.axlespec, reverse=True, move="right")
 
-        self.axleOutline(self.axlespec, reverse=False,move="down")
-        self.axleOutline(self.axlespec, reverse=True, move="down")
-        self.axleOutline(self.axlespec, reverse=False,move="down")
-        self.axleOutline(self.axlespec, reverse=True, move="down")
+        self.axleEnd(7.0, 1.5*self.axleradius, move="down left")
+        self.axleEnd(7.0, 1.5*self.axleradius, move="left")
+        self.axleEnd(5.0, self.axleradius, move="left", label="End1")
+        self.axleEnd(5.0, self.axleradius, move="left", label="End2")
+        self.axleEnd(5.0, self.axleradius, move="left", label="End3")
+        self.axleEnd(5.0, self.axleradius, move="left")
+        self.axleEnd(5.0, self.axleradius + 1.0, move="left")
+        self.axleEnd(5.0, self.axleradius + 1.0, move="left")
+        self.axlePulley(40, 15, 5.0, "left")
 
-        self.axleEnd(5.0, self.axleradius, move="right")
-        self.axleEnd(5.0, self.axleradius, move="right")
-        self.axleEnd(5.0, self.axleradius, move="right")
-        self.axleEnd(5.0, self.axleradius, move="right")
-        self.axleEnd(5.0, self.axleradius + 1.0, move="right")
-        self.axleEnd(5.0, self.axleradius + 1.0, move="right")
-        self.axleEnd(7.0, 1.5*self.axleradius, move="right")
-        self.axleEnd(7.0, 1.5*self.axleradius, move="right")
-        self.axlePulley(60, 15, 5.0, "right")
+        self.debug=False

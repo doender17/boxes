@@ -320,7 +320,7 @@ class Boxes:
         defaultgroup = self.argparser.add_argument_group(
                         "Default Settings")
         defaultgroup.add_argument(
-            "--thickness", action="store", type=float, default=3.0,
+            "--thickness", action="store", type=float, default=3.6,
             help="thickness of the material (in mm) [\U0001F6C8](https://florianfesti.github.io/boxes/html/usermanual.html#thickness)")
         defaultgroup.add_argument(
             "--output", action="store", type=str, default="box.svg",

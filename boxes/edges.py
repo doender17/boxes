@@ -883,7 +883,7 @@ class FingerJointBase(ABC):
 
         return fingers, leftover
 
-    def fingerLength(self, angle: float) -> tuple[float, float]:
+    def fingerLength(self, angle:float) -> tuple[float, float]:
         # sharp corners
         if angle >= 90 or angle <= -90:
             return self.settings.thickness + self.settings.extra_length, 0.0  # type: ignore
@@ -913,10 +913,11 @@ class FingerJointEdge(BaseEdge, FingerJointBase):
             if style == "springs":
                 self.polyline(
                     0, -90, 0.8 * h, (90, 0.2 * h),
-                            0.1 * h, 90, 0.9 * h, -180, 0.9 * h, 90,
-                            f - 0.6 * h,
-                    90, 0.9 * h, -180, 0.9 * h, 90, 0.1 * h,
+                            0.3 * h, 90, 0.9 * h, -180, 0.9 * h, 90,
+                            f - 1.0 * h,
+                    90, 0.9 * h, -180, 0.9 * h, 90, 0.3 * h,
                     (90, 0.2 * h), 0.8 * h, -90)
+
             elif style == "barbs":
                 n = int((h - 0.1 * t) // (0.3 * t))
                 a = math.degrees(math.atan(0.5))

@@ -22,7 +22,6 @@ class Struts(Boxes):
 
     def __init__(self) -> None:
         Boxes.__init__(self)
-
         # Uncomment the settings for the edge types you use
         # use keyword args to set default values
         self.addSettingsArgs(edges.FingerJointSettings, finger=1.0,space=1.0)
@@ -33,15 +32,15 @@ class Struts(Boxes):
         # self.addSettingsArgs(edges.FlexSettings)
 
         # remove cli params you do not need
-        self.buildArgParser(x=400, y=100)
+        self.buildArgParser(x=150, y=100)
         # Add non default cli params if needed (see argparse std lib)
         self.argparser.add_argument(
-            "--strutx", action="store", type=float, default=40,
-            help="Strength of the struts")
+            "--strutx", action="store", type=float, default=10,
+            help="Strut dimension in x direction (multiples of thickness)")
 
         self.argparser.add_argument(
-            "--struty", action="store", type=float, default=40,
-            help="Strength of the struts")
+            "--struty", action="store", type=float, default=10,
+            help="Strut dimension in y direction (multiples of thickness)")
 
         self.argparser.add_argument(
             "--strength",  action="store", type=float, default=3,
@@ -56,7 +55,7 @@ class Struts(Boxes):
             "--ny", action="store", type=int, default=2,
             help="Number of triangle pairs in y direction")
         self.argparser.add_argument(
-            "--spacerdir", action="store", type=str, default="diag",
+            "--spacerdir", action="store", type=str, default="rect",
             help="Direction of spacers (diag, rect)"
         )
         self.argparser.add_argument(
@@ -71,6 +70,10 @@ class Struts(Boxes):
         self.argparser.add_argument(
             "--axler3", action="store", type=float, default=5.0,
             help="Diameters of axle r3 (for ends)")
+        self.argparser.add_argument(
+            "--axlespec", action="store", type=str, default="5,10,8,7*7,4*5",
+            help="Spec for the axle. Comma seperated list of radius each of thickness. Use x*r to have x-times radius segments"
+        )
         self.argparser.add_argument(
             "--axlelength", action="store", type=float, default=40.0,
             help="Total length of axle")
@@ -104,6 +107,82 @@ class Struts(Boxes):
             "--profile_shift",  action="store", type=float, default=20,
             help="in percent of the modulus")
 
+
+    def expandAxleSpec(self, spec, thickness):
+        finalSpec = []
+        foundGrow = False
+        for e in spec.split(","):
+            if '*' in e:
+                a,b = e.split("*")
+                finalSpec.append((float(b), thickness * float(a)))
+            else:
+                finalSpec.append((float(e), thickness))
+
+        return finalSpec
+
+    def getSpecLength(self, spec):
+        l = 0
+        for i, e in enumerate(spec):
+            l += e[1]
+        return l
+
+    def getSpecHeight(self, spec):
+        rmax = 0
+        for i,e in enumerate(spec):
+            if e[0] > rmax:
+                rmax = e[0]
+        return 2.0 * rmax
+
+    def drawAxleSide(self, spec):
+        n = len(spec)
+        for i, e in enumerate(spec):
+            self.edge(e[1])
+            if i < (n-1):
+                step = e[0] - spec[i+1][0]
+                # Not the last one
+                if step < 0:
+                    # Next radius is smaller
+                    self.corner(-90)
+                    self.edge(-1.0*step)
+                    self.corner(90)
+                else:
+                    self.corner(90)
+                    self.edge(step)
+                    self.corner(-90)
+        self.corner(90)
+
+    def drawIncut(self, spec, incut):
+        self.edge(spec[-1][0] - self.thickness/2.0)
+        self.corner(90)
+        self.edge(incut)
+        self.corner(-90)
+        self.edge(self.thickness)
+        self.corner(-90)
+        self.edge(incut)
+        self.corner(90)
+        self.edge(spec[-1][0] - self.thickness/2.0)
+        self.corner(90)
+
+    def axleOutline(self, spec, reverse, move):
+        spec = self.expandAxleSpec(spec, self.thickness)
+        print(spec)
+        if reverse:
+            spec.reverse()
+        l = self.getSpecLength(spec)
+        h = self.getSpecHeight(spec)
+
+        if self.move(h, l, move, before=True):
+            return
+
+        incut = l * 0.5
+        self.moveTo(0, -spec[0][1], 0)
+        self.drawAxleSide(spec)
+        self.drawIncut(spec, incut)
+        spec.reverse()
+        self.drawAxleSide(spec)
+        self.edge(2.0 * spec[-1][0])
+        self.corner(90)
+        self.move(h, l, move)
 
     def axle1(self, move):
         e = self.edges.get("a")
@@ -264,20 +343,38 @@ class Struts(Boxes):
             self.edge(self.thickness)
             self.corner(90)
 
-    def axleEnd(self, move):
-        if self.move(self.spacing + 2.0 * self.axleradius, self.spacing + 2.0 * self.axleradius, where=move, before=True):
+    def axleEnd(self, rCrosshole, axleradius, move):
+        if self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move, before=True):
             return
 
-        self.moveTo(self.axleradius + 0.5 * self.spacing, self.axleradius +  0.5 * self.spacing)
-        self.circle(0.0, 0.0, self.axleradius)
+        self.moveTo(axleradius + 0.5 * self.spacing, axleradius +  0.5 * self.spacing)
+        self.circle(0.0, 0.0, axleradius)
 
-        self.crosshole(self.axler3)
-        self.move(self.spacing + 2.0 * self.axleradius, self.spacing + 2.0 * self.axleradius, where=move)
+        self.crosshole(rCrosshole)
+        self.move(self.spacing + 2.0 * axleradius, self.spacing + 2.0 * axleradius, where=move)
+
+    def axlePulley(self, x, y, rCrosshole, move):
+        if self.move(self.spacing + x, self.spacing + y, where=move, before=True):
+            return
+
+        self.edge(x)
+        self.corner(90)
+        self.edge(y)
+        self.corner(90)
+        self.edge(x)
+        self.corner(90)
+        self.edge(y)
+        self.corner(90)
+
+        self.moveTo(2*rCrosshole, y/2)
+
+        self.crosshole(rCrosshole)
+        self.move(self.spacing + x, self.spacing + y, where=move)
 
     def render(self):
         # adjust to the variables you want in the local scope
         x, y = self.x, self.y
-        strutx, struty = self.strutx, self.struty
+        strutx, struty = self.strutx * self.thickness, self.struty * self.thickness
         t = self.thickness
         s = self.strength
         f = self.factor
@@ -342,6 +439,7 @@ class Struts(Boxes):
 
             if edge_num == 0:
                 self.circle(x / 3, y / 2, self.axleradius)
+                self.circle(x / 3 + self.gearr1 + self.gearr2, y / 2, self.axleradius)
                 with self.saved_context():
                     self.set_source_color(Color.ANNOTATIONS)
                     sx = 3*self.thickness
@@ -358,6 +456,25 @@ class Struts(Boxes):
                 self.fingerHolesAt(0.0, 0.0, strutx)
 
 
+        self.gears(teeth=self.teeth1, dimension=self.modulus,
+                   angle=self.pressure_angle, profile_shift=self.profile_shift,
+                   mount_diameter=3.0 * self.axler2,
+                   callback=lambda: self.crosshole(self.axler2),
+                   move="down")
+        self.gearr1, d1, d1 = self.gears.sizes(
+            teeth=self.teeth1, dimension=self.modulus,
+            angle=self.pressure_angle, profile_shift=self.profile_shift)
+
+        self.gears(teeth=self.teeth2, dimension=self.modulus,
+                   angle=self.pressure_angle, profile_shift=self.profile_shift,
+                   mount_diameter=3.0 * self.axler2,
+                   callback=lambda: self.crosshole(self.axler2),
+                   move="down")
+
+        self.gearr2, d2, d2 = self.gears.sizes(
+            teeth=self.teeth2, dimension=self.modulus,
+            angle=self.pressure_angle, profile_shift=self.profile_shift)
+
         if self.spacerdir == "rect":
             pass
             for i in range(8):
@@ -372,14 +489,20 @@ class Struts(Boxes):
             self.rectangularWall(x, y, "eeee", move="down", callback=fingerHolesDiag)
             self.rectangularWall(x, y, "eeee", move="left", callback=fingerHolesDiag)
 
-        self.axle1(move="right down")
-        self.axle2(move="right")
+        #self.axle1(move="right down")
+        #self.axle2(move="right")
 
-        self.axleEnd(move="right")
-        self.axleEnd(move="right")
+        self.axleOutline(self.axlespec, reverse=False,move="down")
+        self.axleOutline(self.axlespec, reverse=True, move="down")
+        self.axleOutline(self.axlespec, reverse=False,move="down")
+        self.axleOutline(self.axlespec, reverse=True, move="down")
 
-        self.gears(teeth=self.teeth2, dimension=self.modulus,
-                   angle=self.pressure_angle, profile_shift=self.profile_shift,
-                   mount_diameter=3.0 * self.axler2,
-                   callback=lambda: self.crosshole(self.axler2),
-                   move="down")
+        self.axleEnd(5.0, self.axleradius, move="right")
+        self.axleEnd(5.0, self.axleradius, move="right")
+        self.axleEnd(5.0, self.axleradius, move="right")
+        self.axleEnd(5.0, self.axleradius, move="right")
+        self.axleEnd(5.0, self.axleradius + 1.0, move="right")
+        self.axleEnd(5.0, self.axleradius + 1.0, move="right")
+        self.axleEnd(7.0, 1.5*self.axleradius, move="right")
+        self.axleEnd(7.0, 1.5*self.axleradius, move="right")
+        self.axlePulley(60, 15, 5.0, "right")
